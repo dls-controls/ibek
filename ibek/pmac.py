@@ -41,6 +41,16 @@ class Geobrick(EntityInstance):
     idlePoll: A[int, desc("Idle Poll Period in ms")] = 100
     movingPoll: A[int, desc("Moving Poll Period in ms")] = 500
 
+    def generate_startup_entries(self):
+        pass  # like below
+
+    def generate_db_entries(self):
+        templates = [
+            ("pmacController.template", "PMAC={{ P }}"),
+            ("pmacStatus.template", "PMAC={{ P }}"),
+        ]
+        EntityInstance.generate_db_entries(self, templates)
+
 
 @dataclass
 class DlsPmacAsynMotor(EntityInstance):
