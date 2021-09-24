@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -45,23 +46,43 @@ def test_pmac_schema(tmp_path: Path, samples: Path):
     assert expected == actual
 
 
-def test_build_ioc(tmp_path: Path, samples: Path):
+def test_build_helm(tmp_path: Path, samples: Path):
     clear_entity_classes()
-    description = samples / "yaml" / "pmac.ibek.yaml"
-    definition = samples / "yaml" / "bl45p-mo-ioc-02.pmac.yaml"
+    entity_file = samples / "yaml" / "bl45p-mo-ioc-02.pmac.yaml"
+
+    os.chdir(str(samples))
+    result = runner.invoke(cli, ["build-helm", str(entity_file), str(tmp_path)])
+    assert result.exit_code == 0, f"build-ioc failed with: {result}"
+
+    example_entity = entity_file.read_text()
+    actual_file = tmp_path / "bl45p-mo-ioc-02" / "config" / "ioc.boot.yaml"
+    actual_entity = actual_file.read_text()
+
+    assert example_entity == actual_entity
+
+    for test_file in ["Chart.yaml", "values.yaml"]:
+        example = (samples / "helm" / test_file).read_text()
+        actual_file = tmp_path / "bl45p-mo-ioc-02" / test_file
+        actual = actual_file.read_text()
+
+        assert example == actual
+
+
+def test_build_startup(tmp_path: Path, samples: Path):
+    clear_entity_classes()
+    entity_file = samples / "yaml" / "bl45p-mo-ioc-02.pmac.yaml"
+    definition_file = samples / "yaml" / "pmac.ibek.yaml"
+    out_file = tmp_path / "ioc.boot"
 
     result = runner.invoke(
-        cli, ["build-ioc", str(description), str(definition), str(tmp_path)]
+        cli, ["build-startup", str(entity_file), str(definition_file), str(out_file)]
     )
     assert result.exit_code == 0, f"build-ioc failed with: {result}"
 
     example_boot = (samples / "helm" / "ioc.boot").read_text()
-    actual_file = tmp_path / "bl45p-mo-ioc-02" / "config" / "ioc.boot"
-    actual_boot = actual_file.read_text()
+    actual_boot = out_file.read_text()
 
     assert example_boot == actual_boot
-
-    # TODO check chart and values yaml files too
 
 
 def test_loading_module_twice(tmp_path: Path, samples: Path):
